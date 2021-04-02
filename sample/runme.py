@@ -65,48 +65,56 @@ class Console(QtWidgets.QWidget):
         layout.addWidget(self.ui)
         self.setLayout(layout)
         self._text_buffer: typing.List[str] = []
+        self._document = QtGui.QTextDocument(self)
+        self.ui.consoleText.setDocument(self._document)
+
+    def check_valid_dragged_data(self, sources: typing.List[str]) -> bool:
+        for s in sources:
+            if not os.path.exists(s):
+                return False
+            if not os.path.isdir(s):
+                return False
+        return True
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if not all(
-                os.path.exists(u.path()) and
-                os.path.isdir(u.path()) for u in event.mimeData().urls()
-        ):
-            self.ui.label.setAlignment()
-            self.clear()
-
-            self.write(
-                "Input accepts only folders",
-                alignment=QtCore.Qt.AlignCenter
-            )
-
+        dirs = [u.path() for u in event.mimeData().urls()]
+        if not self.check_valid_dragged_data(dirs):
+            self.pop_alert("Input accepts only folders")
             event.ignore()
             return
-        self.clear()
-        paths = "\n".join(s.path() for s in event.mimeData().urls())
-        self.write(f"Bag :\n{paths}?")
 
-        self.ui.label.setAlignment(QtCore.Qt.AlignLeft)
+        paths = "".join(
+            f"<li>{s.path()}</li>" for s in event.mimeData().urls()
+        )
+
+        self.pop_alert(f"Do you want to bag the following directories? :\n"
+                       f"<ul>{paths}</ul>"
+                       )
         event.accept()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        self.clear()
         self.write("Bagging...")
         self.directories_entered.emit([
                 s.path() for s in event.mimeData().urls()
         ])
         event.accept()
 
+    def dragLeaveEvent(self, event: QtGui.QDragLeaveEvent) -> None:
+        self.write_log_buffer_to_screen()
+
     def clear(self) -> None:
         self._text_buffer.clear()
-        self.refresh()
+        self.write_log_buffer_to_screen()
 
-    def write(self, text: str, alignment: QtCore.Qt.Alignment = QtCore.Qt.AlignLeft) -> None:
-        self._text_buffer.append(text)
-        self.refresh(alignment)
+    def write(self, text: str) -> None:
+        self._text_buffer.append(f"<p>{text}</p>")
+        self.write_log_buffer_to_screen()
 
-    def refresh(self, alignment: QtCore.Qt.Alignment = QtCore.Qt.AlignLeft) -> None:
-        self.ui.label.setAlignment(alignment)
-        self.ui.label.setText("\n".join(self._text_buffer))
+    def pop_alert(self, text: str):
+        self.ui.consoleText.setText(f"<h3>{text}</h3>")
+
+    def write_log_buffer_to_screen(self) -> None:
+        self._document.setHtml("\n".join(self._text_buffer))
 
 
 class Demo(QtWidgets.QMainWindow):
@@ -131,6 +139,9 @@ class Demo(QtWidgets.QMainWindow):
 
         self._layout.addWidget(self.options)
         self._layout.addWidget(self.console)
+        self.clearLogButton = QtWidgets.QPushButton(text="Clear Console")
+        self.clearLogButton.clicked.connect(self.console.clear)
+        self._layout.addWidget(self.clearLogButton)
 
         self.console.directories_entered.connect(self.run)
         self.setCentralWidget(main_widget)
@@ -139,7 +150,7 @@ class Demo(QtWidgets.QMainWindow):
         for p in paths:
             self.console.write(p)
             QtCore.QCoreApplication.processEvents()
-            sleep(1)
+            sleep(.1)
         self.console.write("Done")
 
 
