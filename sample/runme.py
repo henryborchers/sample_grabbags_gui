@@ -1,7 +1,9 @@
+import logging
 import os
 import typing
 from time import sleep
-
+from grabbags import grabbags
+from sample import run_grabbags
 from PySide2 import QtCore, QtWidgets, QtUiTools, QtGui
 import sys
 try:
@@ -121,6 +123,7 @@ class Demo(QtWidgets.QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
+
         main_widget = QtWidgets.QWidget(self)
         self._layout = QtWidgets.QVBoxLayout()
         main_widget.setLayout(self._layout)
@@ -147,17 +150,30 @@ class Demo(QtWidgets.QMainWindow):
         self.setCentralWidget(main_widget)
 
     def run(self, paths: typing.List[str]) -> None:
-        for p in paths:
-            self.console.write(p)
-            QtCore.QCoreApplication.processEvents()
-            sleep(.1)
+        run_grabbags.run(paths)
+
         self.console.write("Done")
+
+
+class ConsoleLogHandler(logging.Handler):
+    def __init__(self,
+                 widget: QtWidgets.QWidget,
+                 level: int = logging.NOTSET) -> None:
+
+        super().__init__(level)
+        self.formatter = logging.Formatter()
+        self.widget = widget
+
+    def emit(self, record) -> None:
+        self.widget.write(self.formatter.format(record))
 
 
 def main() -> None:
     QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
     app = QtWidgets.QApplication(sys.argv)
     main_window = Demo()
+    console_log_handler = ConsoleLogHandler(main_window.console)
+    grabbags.LOGGER.addHandler(console_log_handler)
     main_window.setWindowTitle("Grabbags GUI Demo")
     main_window.resize(640, 480)
     main_window.show()
