@@ -177,6 +177,7 @@ def main() -> None:
     main_window.setWindowTitle("Grabbags GUI Demo")
     main_window.resize(640, 480)
     main_window.show()
+    main_window.console.write("Drag folders over here")
     sys.exit(app.exec_())
 
 

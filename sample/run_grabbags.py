@@ -3,6 +3,7 @@ from grabbags.grabbags import validate_bag, LOGGER, clean_bag, make_bag, _
 import bagit
 from argparse import Namespace
 
+
 def run(directories):
     successes = []
     failures = []
@@ -14,6 +15,7 @@ def run(directories):
     args.bag_info = {}
     args.clean = False
     args.validate = False
+    action = None
     for bag_parent in directories:
         for bag_dir in filter(lambda i: i.is_dir(), os.scandir(bag_parent)):
             if args.validate:
