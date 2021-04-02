@@ -1,0 +1,9 @@
+This mock up for what the gui could look like for grabbags.
+
+Drag and drop with options at the top.
+
+To run,
+1) Create a virtual env
+2) activate it
+3) Run "pip install -r requirements.txt"
+4) Type "python -m sample" and it will load
